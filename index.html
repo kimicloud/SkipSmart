@@ -1725,41 +1725,119 @@
             }
 
             showSkipCalculator(subjectId) {
-                const subject = StorageManager.getSubject(subjectId);
-                if (!subject) return;
-                
-                const percentage = subject.total === 0 ? 0 : (subject.attended / subject.total) * 100;
-                const safeSkips = this.calculateSafeSkips(subject);
-                const riskLevel = this.getRiskLevel(percentage);
-                
-                let statusClass = 'status-safe';
-                let statusText = '✅ Safe to Skip!';
-                let advice = `You can safely skip ${safeSkips} more class(es) while staying above 75%.`;
-                
-                if (riskLevel === 'caution') {
-                    statusClass = 'status-caution';
-                    statusText = '⚠️ Risky!';
-                    advice = `You're in the danger zone. Skip carefully! Only ${safeSkips} safe skips left.`;
-                } else if (riskLevel === 'danger') {
-                    statusClass = 'status-danger';
-                    statusText = '🚫 DON\'T SKIP!';
-                    advice = 'Your attendance is below 75%. You MUST attend the next class!';
-                }
-                
-                const skipResultElement = document.getElementById(`skipResult-${subjectId}`);
-                
-                if (skipResultElement) {
-                    skipResultElement.innerHTML = `
-                        <div class="current-percentage color-${riskLevel}">${percentage.toFixed(1)}%</div>
-                        <div class="safe-skips">${safeSkips} safe skip(s) remaining</div>
-                        <div class="skip-info" style="font-size: 0.95rem; text-align: center;">${advice}</div>
-                        <div class="status-indicator ${statusClass}">${statusText}</div>
-                    `;
-                    skipResultElement.style.display = 'block';
-                    
-                    skipResultElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const subject = StorageManager.getSubject(subjectId);
+    if (!subject) return;
+    
+    // Get pending changes for this subject
+    const pending = this.pendingAttendance[subjectId] || { present: 0, absent: 0 };
+    
+    // Calculate CURRENT attendance based on pending changes
+    const currentAttended = subject.attended + pending.present;
+    const currentTotal = subject.total + pending.present + pending.absent;
+    const currentPercentage = currentTotal === 0 ? 0 : (currentAttended / currentTotal) * 100;
+    
+    // Calculate AFTER SKIPPING (add 1 absent to simulate skip)
+    const afterSkipAttended = currentAttended; // Same, not attending
+    const afterSkipTotal = currentTotal + 1; // One more class
+    const afterSkipPercentage = (afterSkipAttended / afterSkipTotal) * 100;
+    
+    const afterSkipRiskLevel = this.getRiskLevel(afterSkipPercentage);
+    
+    // Calculate safe skips from CURRENT state
+    let safeSkips = 0;
+    if (currentTotal > 0) {
+        const targetPercentage = 75;
+        
+        if (currentPercentage < targetPercentage) {
+            safeSkips = 0;
+        } else {
+            let tempAttended = currentAttended;
+            let tempTotal = currentTotal;
+            
+            while (tempTotal < 1000) {
+                const newPercentage = (tempAttended / (tempTotal + 1)) * 100;
+                if (newPercentage >= targetPercentage) {
+                    safeSkips++;
+                    tempTotal++;
+                } else {
+                    break;
                 }
             }
+        }
+    }
+    
+    let statusClass = 'status-safe';
+    let statusText = '✅ Safe to Skip!';
+    let advice = '';
+    
+    // Decision based on AFTER SKIP percentage
+    if (afterSkipRiskLevel === 'danger') {
+        statusClass = 'status-danger';
+        statusText = '🚫 DON\'T SKIP!';
+        advice = `If you skip, your attendance will drop to <strong>${afterSkipPercentage.toFixed(1)}%</strong> (below 75%). You MUST attend!`;
+        
+        // Calculate classes needed to recover
+        let classesNeeded = 0;
+        let tempAttended = currentAttended;
+        let tempTotal = currentTotal;
+        
+        while (tempTotal < 1000) {
+            tempAttended++;
+            tempTotal++;
+            classesNeeded++;
+            const newPercentage = (tempAttended / tempTotal) * 100;
+            if (newPercentage >= 75) {
+                break;
+            }
+        }
+        
+        advice += ` You need ${classesNeeded} consecutive classes to reach safe zone.`;
+    } else if (afterSkipRiskLevel === 'caution') {
+        statusClass = 'status-caution';
+        statusText = '⚠️ Risky!';
+        advice = `If you skip, your attendance will be <strong>${afterSkipPercentage.toFixed(1)}%</strong> (caution zone). `;
+        if (safeSkips <= 1) {
+            advice += `This is your last safe skip! Next skip will be dangerous.`;
+        } else {
+            advice += `You'll have ${safeSkips - 1} safe skip(s) left after this.`;
+        }
+    } else {
+        statusClass = 'status-safe';
+        statusText = '✅ Safe to Skip!';
+        advice = `If you skip, your attendance will be <strong>${afterSkipPercentage.toFixed(1)}%</strong> (still safe). `;
+        advice += `You can skip ${safeSkips} more time(s) safely.`;
+    }
+    
+    // Check if there are pending changes
+    const hasPendingChanges = pending.present > 0 || pending.absent > 0;
+    let pendingNote = '';
+    
+    if (hasPendingChanges) {
+        pendingNote = `<div style="font-size: 0.85rem; color: #607B8F; font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #E0E0E0;">
+            💡 Calculated with pending changes: +${pending.present} present, -${pending.absent} absent
+        </div>`;
+    }
+    
+    const skipResultElement = document.getElementById(`skipResult-${subjectId}`);
+    
+    if (skipResultElement) {
+        skipResultElement.innerHTML = `
+            <div style="font-size: 1rem; color: #607B8F; font-weight: 600; margin-bottom: 10px;">
+                Current: <span class="color-${this.getRiskLevel(currentPercentage)}" style="font-size: 1.3rem; font-weight: 800;">${currentPercentage.toFixed(1)}%</span>
+            </div>
+            <div style="font-size: 1.5rem; margin: 8px 0;">⬇️</div>
+            <div style="font-size: 1rem; color: #607B8F; font-weight: 600; margin-bottom: 8px;">After 1 Skip:</div>
+            <div class="current-percentage color-${afterSkipRiskLevel}">${afterSkipPercentage.toFixed(1)}%</div>
+            <div class="safe-skips">${safeSkips} safe skip(s) available now</div>
+            <div class="skip-info" style="font-size: 0.95rem; text-align: center;">${advice}</div>
+            <div class="status-indicator ${statusClass}">${statusText}</div>
+            ${pendingNote}
+        `;
+        skipResultElement.style.display = 'block';
+        
+        skipResultElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
 
             openAttendanceModal(subjectId) {
                 // Legacy function - no longer used
