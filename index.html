@@ -12,45 +12,36 @@
             <h1>SkipSmart</h1>
             <p class="tagline">Know if you can skip today in 3 seconds</p>
         </header>
-        <!-- <header class="main-header">
-            <div class="header-inner">
-                <h1>SkipSmart</h1>
-                <p class="tagline">Know if you can skip today in 3 seconds</p>
-            </div>
-        </header> -->
-
-        <div class="reminder-toggle">
-            <label for="reminderToggle">🔔 Enable Class Reminders</label>
-            <label class="toggle-switch">
-                <input type="checkbox" id="reminderToggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-
-        <section class="skip-calculator">
-            <h2>Can I Skip Today?</h2>
-            <div class="skip-result" id="skipResult">
-                <p class="hint">Select a subject below to check</p>
-            </div>
-        </section>
 
         <section class="overall-stats">
-            <div class="stat-card">
-                <div class="stat-value" id="overallPercentage">0%</div>
-                <div class="stat-label">Overall Attendance</div>
+            <h2>Overall Analytics Dashboard</h2>
+            <div class="overall-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="overallPercentage">0%</div>
+                    <div class="stat-label">Overall Attendance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalClasses">0</div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="attendedClasses">0</div>
+                    <div class="stat-label">Classes Attended</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSkips">0</div>
+                    <div class="stat-label">Total Skips</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="bestStreak">0</div>
+                    <div class="stat-label">Best Streak</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalClasses">0</div>
-                <div class="stat-label">Total Classes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="attendedClasses">0</div>
-                <div class="stat-label">Classes Attended</div>
-            </div>
+            <div class="overall-analytics" id="overallAnalytics"></div>
         </section>
 
         <section class="zone-dashboard">
-            <h2>📊 Attendance Zones Overview</h2>
+            <h2>Attendance Zones Overview</h2>
             <div class="zones-grid">
                 <div class="zone-card zone-safe">
                     <div class="zone-icon">🟢</div>
@@ -77,11 +68,6 @@
             <div class="zone-subjects" id="zoneSubjects"></div>
         </section>
 
-        <section class="analytics-section" id="analyticsSection" style="display: none;">
-            <h2>📊 Analytics Dashboard</h2>
-            <div class="analytics-grid" id="analyticsGrid"></div>
-        </section>
-
         <button class="add-subject-btn" id="addSubjectBtn">+ Add Subject</button>
 
         <section class="subjects-section">
@@ -98,42 +84,6 @@
                     <input type="number" id="totalClassesInput" placeholder="Total classes this semester (optional)" min="1">
                     <button type="submit">Add Subject</button>
                 </form>
-            </div>
-        </div>
-
-        <div class="modal" id="markAttendanceModal">
-            <div class="modal-content">
-                <span class="close" id="closeAttendanceModal">&times;</span>
-                <h2 id="attendanceModalTitle">Mark Attendance</h2>
-                
-                <div class="attendance-summary">
-                    <div class="summary-item">
-                        <span class="summary-label">Present:</span>
-                        <span class="summary-value" id="presentCount">0</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-label">Absent:</span>
-                        <span class="summary-value" id="absentCount">0</span>
-                    </div>
-                </div>
-                
-                <div class="attendance-buttons">
-                    <button class="present-btn" id="markPresentBtn">
-                        <span class="btn-icon">✓</span>
-                        <span class="btn-text">Present</span>
-                        <span class="btn-count">+1</span>
-                    </button>
-                    <button class="absent-btn" id="markAbsentBtn">
-                        <span class="btn-icon">✕</span>
-                        <span class="btn-text">Absent</span>
-                        <span class="btn-count">-1</span>
-                    </button>
-                </div>
-                
-                <div class="modal-actions">
-                    <button class="confirm-btn" id="confirmAttendanceBtn">✓ Confirm & Save</button>
-                    <button class="undo-btn" id="undoBtn">↶ Undo Last Action</button>
-                </div>
             </div>
         </div>
 
