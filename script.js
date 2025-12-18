@@ -246,17 +246,19 @@ class SkipSmart {
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
         const subjects = StorageManager.getSubjects();
+
         subjects.forEach(subject => {
             if (subject.total === 0) return;
-            
+
             const percentage = (subject.attended / subject.total) * 100;
-            
+
             if (percentage < 75) {
-                new Notification('⚠️ Low Attendance Alert!', {
-                    body: `${subject.name}: ${percentage.toFixed(1)}% - You MUST attend the next class!`,
+                new Notification('🚨 Attendance Critical!', {
+                    body: `${subject.name}: ${percentage.toFixed(1)}%\nSkipping any more classes will make you INELIGIBLE.`,
                     icon: '🔴'
                 });
-            } else if (percentage < 80) {
+            } 
+            else if (percentage < 80) {
                 new Notification('🟡 Attendance Warning', {
                     body: `${subject.name}: ${percentage.toFixed(1)}% - Be careful! Close to danger zone.`,
                     icon: '🟡'
@@ -266,6 +268,7 @@ class SkipSmart {
 
         setTimeout(() => this.checkReminders(), 3600000);
     }
+
 
     renderSubjects() {
         const subjects = StorageManager.getSubjects();
@@ -397,13 +400,45 @@ class SkipSmart {
         this.updateSubjectCounters(subjectId);
     }
 
+    // addAbsent(subjectId) {
+    //     if (!this.pendingAttendance[subjectId]) {
+    //         this.pendingAttendance[subjectId] = { present: 0, absent: 0 };
+    //     }
+    //     // this.pendingAttendance[subjectId].absent++;
+    //     // this.updateSubjectCounters(subjectId);
+    // }
+
     addAbsent(subjectId) {
-        if (!this.pendingAttendance[subjectId]) {
-            this.pendingAttendance[subjectId] = { present: 0, absent: 0 };
+        const subject = StorageManager.getSubject(subjectId);
+        if (!subject) return;
+
+        const pending = this.pendingAttendance[subjectId] || { present: 0, absent: 0 };
+
+        const willBeDanger = this.willSubjectBecomeDanger(subject, pending.absent + 1);
+
+        if (willBeDanger) {
+            alert(
+                `🚫 Attendance Warning\n\n` +
+                `If you skip this class today, "${subject.name}" will fall below 75%.\n` +
+                `You will NOT meet the attendance criteria.`
+            );
+
+            if (StorageManager.getRemindersEnabled() &&
+                'Notification' in window &&
+                Notification.permission === 'granted') {
+
+                new Notification('🚨 Attendance Risk!', {
+                    body: `"${subject.name}" will fall below 75% if you skip this class.`,
+                    icon: '🔴'
+                });
+            }
         }
-        this.pendingAttendance[subjectId].absent++;
+
+        pending.absent++;
+        this.pendingAttendance[subjectId] = pending;
         this.updateSubjectCounters(subjectId);
     }
+
 
     updateSubjectCounters(subjectId) {
         const presentDisplay = document.getElementById(`presentDisplay-${subjectId}`);
@@ -423,22 +458,44 @@ class SkipSmart {
     confirmSubjectAttendance(subjectId) {
         const pending = this.pendingAttendance[subjectId];
         if (!pending || (pending.present === 0 && pending.absent === 0)) return;
-        
+
+        const totalAbsentsToday = Object.values(this.pendingAttendance)
+            .reduce((sum, p) => sum + p.absent, 0);
+
+        if (totalAbsentsToday > 0 && this.willOverallBecomeDanger(totalAbsentsToday)) {
+            alert(
+                `⚠️ Overall Attendance Warning\n\n` +
+                `Skipping today's classes will drop your OVERALL attendance below eligibility criteria.`
+            );
+
+            if (
+                StorageManager.getRemindersEnabled() &&
+                'Notification' in window &&
+                Notification.permission === 'granted'
+            ) {
+                new Notification('⚠️ Overall Attendance Risk', {
+                    body: 'Skipping today will affect your overall attendance eligibility.',
+                    icon: '⚠️'
+                });
+            }
+        }
+
         for (let i = 0; i < pending.present; i++) {
             StorageManager.updateAttendance(subjectId, true);
         }
-        
+
         for (let i = 0; i < pending.absent; i++) {
             StorageManager.updateAttendance(subjectId, false);
         }
-        
+
         this.pendingAttendance[subjectId] = { present: 0, absent: 0 };
-        
+
         this.renderSubjects();
         this.updateOverallStats();
         this.updateZoneDashboard();
         this.updateAnalytics();
     }
+
 
     undoSubjectAttendance(subjectId) {
         const subject = StorageManager.undoLastAttendance(subjectId);
@@ -483,6 +540,34 @@ class SkipSmart {
         if (percentage >= 75) return 'caution';
         return 'danger';
     }
+
+    willSubjectBecomeDanger(subject, pendingAbsent = 1) {
+        const attended = subject.attended;
+        const total = subject.total;
+
+        const futureTotal = total + pendingAbsent;
+        const futurePercentage = (attended / futureTotal) * 100;
+
+        return futurePercentage < 75;
+    }
+
+    willOverallBecomeDanger(extraAbsents) {
+        const subjects = StorageManager.getSubjects();
+
+        let attended = 0;
+        let total = 0;
+
+        subjects.forEach(s => {
+            attended += s.attended;
+            total += s.total;
+        });
+
+        const futureTotal = total + extraAbsents;
+        const futurePercentage = (attended / futureTotal) * 100;
+
+        return futurePercentage < 75;
+    }
+
 
     showSkipCalculator(subjectId) {
         const subject = StorageManager.getSubject(subjectId);
