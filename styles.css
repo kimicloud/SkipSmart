@@ -6,15 +6,18 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f7fa;
+    background: #e6EFEFE6;
     min-height: 100vh;
     padding: 20px;
 }
 
 .container {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1600px;
     margin: 0 auto;
+    padding: 40px 32px;
 }
+
 
 header {
     text-align: center;
